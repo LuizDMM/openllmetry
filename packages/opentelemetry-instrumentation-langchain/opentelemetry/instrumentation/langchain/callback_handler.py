@@ -4,9 +4,9 @@ from typing import Any, Dict, List, Optional, Type, Union
 from uuid import UUID
 
 from langchain_core.callbacks import (
+    AsyncCallbackManager,
     BaseCallbackHandler,
     CallbackManager,
-    AsyncCallbackManager,
 )
 from langchain_core.messages import (
     AIMessage,
@@ -43,20 +43,21 @@ from opentelemetry.instrumentation.langchain.span_utils import (
     set_llm_request,
     set_request_params,
 )
-from opentelemetry.instrumentation.langchain.vendor_detection import (
-    detect_vendor_from_class,
-)
 from opentelemetry.instrumentation.langchain.utils import (
     CallbackFilteredJSONEncoder,
     dont_throw,
     should_emit_events,
     should_send_prompts,
 )
+from opentelemetry.instrumentation.langchain.vendor_detection import (
+    detect_vendor_from_class,
+)
 from opentelemetry.instrumentation.utils import _SUPPRESS_INSTRUMENTATION_KEY
 from opentelemetry.metrics import Histogram
 from opentelemetry.semconv._incubating.attributes.gen_ai_attributes import (
     GEN_AI_RESPONSE_ID,
 )
+from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 from opentelemetry.semconv_ai import (
     SUPPRESS_LANGUAGE_MODEL_INSTRUMENTATION_KEY,
     LLMRequestTypeValues,
@@ -66,7 +67,6 @@ from opentelemetry.semconv_ai import (
 from opentelemetry.trace import SpanKind, Tracer, set_span_in_context
 from opentelemetry.trace.span import Span
 from opentelemetry.trace.status import Status, StatusCode
-from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 
 
 def _extract_class_name_from_serialized(serialized: Optional[dict[str, Any]]) -> str:
@@ -476,6 +476,7 @@ class TraceloopCallbackHandler(BaseCallbackHandler):
         else:
             set_llm_request(span, serialized, prompts, kwargs, self.spans[run_id])
 
+    @dont_throw
     def on_llm_end(
         self,
         response: LLMResult,
